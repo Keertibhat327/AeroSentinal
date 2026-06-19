@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.routers import engine, hydraulics, landing_gear, apu, ecs
-from backend.app.routers import fusion, simulator
+from backend.app.routers import fusion, simulator, nlp
 
 app = FastAPI(
     title="AeroSentinal",
@@ -93,3 +93,6 @@ app.include_router(fusion.router, prefix="/fusion", tags=["Fusion"])
 
 # What-if simulator
 app.include_router(simulator.router, prefix="/simulate", tags=["Simulator"])
+
+# NLP repair recommendations (Phase 1 stand-in)
+app.include_router(nlp.router, prefix="/nlp", tags=["NLP"])

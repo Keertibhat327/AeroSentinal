@@ -21,11 +21,12 @@ A multi-subsystem aircraft predictive maintenance platform with:
 
 | Subsystem | Model | Dataset | Status |
 |---|---|---|---|
-| Turbofan Engine (RUL) | BiLSTM + Attention | NASA C-MAPSS (FD001, FD004) | 🔲 Pending |
-| Hydraulics (Anomaly) | 1D Conv Autoencoder | UCI Hydraulic Systems | 🔲 Pending |
-| Landing Gear / Brakes | XGBoost Classifier | Physics-informed synthetic | 🔲 Pending |
-| APU Health Scoring | Random Forest | Physics-informed synthetic | 🔲 Pending |
-| ECS Cross-Domain | Brayton-cycle simulator + rule-based attribution | Physics-informed synthetic | 🔲 Pending |
+| Turbofan Engine (RUL) | BiLSTM + Attention | NASA C-MAPSS (FD001, FD004) | 🔲 ML Training Pending |
+| Hydraulics (Anomaly) | 1D Conv Autoencoder | UCI Hydraulic Systems | 🔲 ML Training Pending |
+| Landing Gear / Brakes | XGBoost Classifier | Physics-informed synthetic | 🔲 ML Training Pending |
+| APU Health Scoring | Random Forest | Physics-informed synthetic | 🔲 ML Training Pending |
+| ECS Cross-Domain | Brayton-cycle simulator + rule-based attribution | Physics-informed synthetic | ✅ API Live |
+| NLP Repair Assistant | TF-IDF + Cosine Similarity (Phase 1 stand-in) | 18 curated pairs | ✅ API Live |
 
 ### Phase 2 Roadmap (not yet implemented)
 EMA/Actuators · Electrical Power/Avionics · Li-ion Battery · Structural Health (CFRP) · Fine-tuned LLM Repair Assistant
@@ -105,7 +106,7 @@ cd frontend && npm install && npm run dev
 - [x] Fusion API + ACARS compiler + AOG cost scorer
 - [ ] ONNX export + latency benchmarks
 - [x] What-if fault injection simulator (live re-runs, not canned)
-- [ ] NLP retrieval stand-in
+- [x] NLP retrieval stand-in (TF-IDF, 18 curated pairs, clearly labeled)
 - [x] Frontend dashboard + 3D aircraft viewer + simulator UI
 - [ ] Known-limitations documentation + final review
 
