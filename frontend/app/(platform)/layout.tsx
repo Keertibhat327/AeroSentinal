@@ -2,13 +2,29 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, Plane, Settings, LayoutDashboard, BookOpen, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plane, Settings, LayoutDashboard, BookOpen, AlertCircle } from "lucide-react";
 import clsx from "clsx";
 import { useStore } from "@/lib/store";
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { backendOnline } = useStore();
+  // Client-only clock — starts null so SSR and initial client render both output nothing,
+  // eliminating the second-level hydration mismatch.
+  const [zuluTime, setZuluTime] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fmt = () => {
+      const now = new Date();
+      const date = now.toISOString().split('T')[0];
+      const time = now.toISOString().split('T')[1].substring(0, 8);
+      setZuluTime(`${date} | ZULU: ${time}`);
+    };
+    fmt();
+    const id = setInterval(fmt, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const navItems = [
     { name: "Fleet Overview", href: "/dashboard", icon: LayoutDashboard },
@@ -63,7 +79,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
         {/* Topbar */}
         <header className="h-16 flex-shrink-0 glass-panel border-x-0 border-t-0 rounded-none flex items-center justify-between px-8 z-10">
           <div className="text-sm text-gray-400 font-mono">
-            {new Date().toISOString().split('T')[0]} | ZULU TIME: {new Date().toISOString().split('T')[1].substring(0, 8)}
+            {zuluTime ?? '——————————————'}
           </div>
           <div className="flex items-center gap-4">
             <button className="text-gray-400 hover:text-white transition-colors">
