@@ -24,7 +24,7 @@ function ZoneMesh({
   geometry, 
   baseOpacity = 0.8 
 }: { 
-  zoneName: keyof AircraftState, 
+  zoneName: string, 
   geometry: THREE.BufferGeometry,
   baseOpacity?: number
 }) {

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -259,34 +260,42 @@ export const useStore = create<AppState>((set, get) => ({
   },
 }));
 
-// Selector hooks for components to subscribe to specific zone colors
-export const useZoneStatusColor = (zone: keyof AircraftState) => {
-  return useStore((state) => {
-    // The keys map 'zone_engine' -> 'engine', etc.
-    const mapping: Record<string, keyof AircraftState> = {
-      zone_engine: 'engine',
-      zone_ecs: 'ecs',
-      zone_apu: 'apu',
-      zone_landing_gear: 'landingGear',
-      zone_hydraulics: 'hydraulics',
-    };
-    
-    // Support either direct names or "zone_*" prefix
-    const key = mapping[zone] || zone;
-    const subsystem = state.aircraft[key as keyof AircraftState] as SubsystemHealth | undefined;
-    
-    if (!subsystem) return { color: '#10b981', intensity: 0, isWarning: false };
-    
-    const colors = {
-      Healthy: '#10b981',   // emerald-500
-      Warning: '#f59e0b',   // amber-500
-      Critical: '#f43f5e',  // rose-500
-    };
+// Selector hooks for components to subscribe to specific zone colors.
+// IMPORTANT: useShallow is required here because the selector returns an object.
+// Without it, Zustand's useSyncExternalStore sees a NEW object reference on every
+// render and triggers an infinite update loop.
+export const useZoneStatusColor = (zone: string) => {
+  const mapping: Record<string, keyof AircraftState> = {
+    zone_engine: 'engine',
+    zone_ecs: 'ecs',
+    zone_apu: 'apu',
+    zone_landing_gear: 'landingGear',
+    zone_hydraulics: 'hydraulics',
+    engine: 'engine',
+    ecs: 'ecs',
+    apu: 'apu',
+    landingGear: 'landingGear',
+    hydraulics: 'hydraulics',
+  };
 
-    return {
-      color: colors[subsystem.status] || '#10b981',
-      intensity: Math.max(0, (100 - subsystem.score) / 100),
-      isWarning: subsystem.status !== 'Healthy',
-    };
-  });
+  return useStore(
+    useShallow((state) => {
+      const key = mapping[zone];
+      const subsystem = key ? (state.aircraft[key] as SubsystemHealth | undefined) : undefined;
+
+      if (!subsystem) return { color: '#10b981', intensity: 0, isWarning: false };
+
+      const colors: Record<string, string> = {
+        Healthy: '#10b981',
+        Warning: '#f59e0b',
+        Critical: '#f43f5e',
+      };
+
+      return {
+        color: colors[subsystem.status] ?? '#10b981',
+        intensity: Math.max(0, (100 - subsystem.score) / 100),
+        isWarning: subsystem.status !== 'Healthy',
+      };
+    })
+  );
 };
