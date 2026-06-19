@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AeroSentinal - Predictive Maintenance</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700&amp;family=Inter:wght@400&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        .glow-active {
+            box-shadow: 0 0 2px 0px theme('colors.tactical-amber');
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed": "#2a1800",
+                        "status-critical": "#FF4D4D",
+                        "on-tertiary-fixed-variant": "#004d61",
+                        "on-tertiary-fixed": "#001f28",
+                        "tertiary-container": "#52d0f9",
+                        "on-primary": "#462a00",
+                        "on-error": "#690005",
+                        "surface-dim": "#111317",
+                        "obsidian-base": "#0B0C0E",
+                        "secondary-container": "#5f4427",
+                        "primary": "#ffd7a9",
+                        "secondary-fixed-dim": "#e6bf9a",
+                        "background": "#111317",
+                        "inverse-primary": "#845400",
+                        "tactical-amber": "#FFB347",
+                        "on-tertiary-container": "#00576d",
+                        "surface-container-lowest": "#0c0e12",
+                        "tertiary-fixed": "#b8eaff",
+                        "surface-container-low": "#1a1c20",
+                        "on-secondary-container": "#d7b18d",
+                        "on-primary-fixed-variant": "#643f00",
+                        "bronze-oxide": "#8E6E4E",
+                        "on-tertiary": "#003544",
+                        "inverse-surface": "#e2e2e8",
+                        "primary-fixed": "#ffddb6",
+                        "surface-bright": "#37393e",
+                        "surface-variant": "#333539",
+                        "primary-container": "#ffb347",
+                        "on-secondary": "#432b11",
+                        "on-error-container": "#ffdad6",
+                        "status-optimal": "#4DFFAD",
+                        "outline": "#9f8e7c",
+                        "surface-container": "#1e2024",
+                        "secondary": "#e6bf9a",
+                        "primary-fixed-dim": "#ffb95a",
+                        "surface-container-high": "#282a2e",
+                        "inverse-on-surface": "#2f3035",
+                        "on-background": "#e2e2e8",
+                        "on-surface": "#e2e2e8",
+                        "surface-tint": "#ffb95a",
+                        "outline-variant": "#524535",
+                        "secondary-fixed": "#ffdcbd",
+                        "on-secondary-fixed-variant": "#5c4125",
+                        "panel-surface": "#16191E",
+                        "tertiary-fixed-dim": "#58d5fe",
+                        "surface-container-highest": "#333539",
+                        "surface": "#111317",
+                        "on-secondary-fixed": "#2b1701",
+                        "error": "#ffb4ab",
+                        "on-primary-container": "#704700",
+                        "on-surface-variant": "#d6c3b0",
+                        "error-container": "#93000a",
+                        "tertiary": "#abe7ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "margin-desktop": "32px",
+                        "margin-mobile": "16px",
+                        "container-max": "1440px",
+                        "unit": "4px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "label-caps": ["JetBrains Mono"],
+                        "data-display": ["JetBrains Mono"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "body-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "headline-lg-mobile": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.1em", "fontWeight": "700" }],
+                        "data-display": ["18px", { "lineHeight": "24px", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "30px", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-obsidian-base text-on-surface font-body-lg min-h-screen flex flex-col antialiased">
+<!-- Top Navigation -->
+<nav class="bg-obsidian-base/80 backdrop-blur-md w-full sticky top-0 z-50 border-b border-secondary/20 flex justify-between items-center px-margin-desktop py-4 max-w-container-max mx-auto">
+<div class="font-headline-md text-headline-md text-tactical-amber tracking-tighter">AeroSentinal</div>
+<div class="hidden md:flex gap-8 items-center">
+<a class="font-label-caps text-label-caps text-on-surface-variant/70 hover:text-tactical-amber transition-colors duration-200" href="#">DASHBOARD</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant/70 hover:text-tactical-amber transition-colors duration-200" href="#">SIMULATOR</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant/70 hover:text-tactical-amber transition-colors duration-200" href="#">ML MODELS</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant/70 hover:text-tactical-amber transition-colors duration-200" href="#">DOCUMENTATION</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-tactical-amber hover:text-primary transition-colors active:scale-95">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-tactical-amber hover:text-primary transition-colors active:scale-95">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<button class="text-tactical-amber hover:text-primary transition-colors active:scale-95">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="flex-grow relative">
+<!-- Hero Section -->
+<section class="relative h-screen w-full flex items-center justify-center overflow-hidden">
+<!-- Background Image -->
+<div class="absolute inset-0 z-0">
+<img alt="Hero Background" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AP1WRLuHtipBT5joViozeT-WW4ReqMnab_Vo57Ar_p461G6MohdUGGX6NFJp_Nn4Ee8uu29PNzvMv-BV_aooHGdWHzW8eUamQQ9p7NqYP2-UsmPHIh6mZKjn3Git2riSy_h0xLAwc9gQ5UnogdJWfR-9qV7kP3RSpaLT3yNpiC3AIZnGCZLauJLbY-_3UfNOLs040SqD1ffSV-JGkaIRxS_kPF3Zvz0rabKtV2-5CFwI2IVIkT95bEJpy9SilI0"/>
+<!-- Tactical Gradient Overlay -->
+<div class="absolute inset-0 bg-gradient-to-b from-obsidian-base/80 via-obsidian-base/40 to-obsidian-base"></div>
+</div>
+<!-- Hero Content Overlay -->
+<div class="relative z-10 max-w-container-max mx-auto px-margin-desktop flex flex-col items-start w-full gap-8">
+<div class="max-w-3xl border-l-2 border-tactical-amber pl-6">
+<h1 class="font-headline-lg text-headline-lg md:text-[48px] md:leading-[56px] text-on-surface mb-4">
+                        AeroSentinal: Holistic Aircraft Predictive Maintenance
+                    </h1>
+<p class="font-data-display text-data-display text-on-surface-variant/80 mb-8 max-w-2xl">
+                        5 independently trained ML subsystems. Real-time fusion orchestration. Zero-AOG precision.
+                    </p>
+<div class="flex flex-col sm:flex-row gap-4">
+<button class="bg-tactical-amber text-on-primary-fixed font-label-caps text-label-caps px-8 py-3 rounded DEFAULT hover:bg-primary transition-colors active:scale-95 flex items-center justify-center gap-2">
+<span class="">Launch Dashboard</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+<button class="bg-transparent border border-tactical-amber text-tactical-amber font-label-caps text-label-caps px-8 py-3 rounded DEFAULT hover:bg-tactical-amber/10 transition-colors active:scale-95 flex items-center justify-center gap-2">
+<span class="">View Documentation</span>
+<span class="material-symbols-outlined text-[16px]">menu_book</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Scroll Indicator -->
+<div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-on-surface-variant/50 animate-bounce">
+<span class="font-label-caps text-[10px] tracking-widest">SCROLL</span>
+<span class="material-symbols-outlined text-[16px]">keyboard_arrow_down</span>
+</div>
+</section>
+<!-- Subsystems Section -->
+<section class="py-24 px-margin-desktop max-w-container-max mx-auto relative z-20 bg-obsidian-base">
+<div class="mb-16 border-b border-secondary/20 pb-4">
+<h2 class="font-headline-md text-headline-md text-tactical-amber">CORE ML SUBSYSTEMS</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-2">Active Telemetry Models &amp; Architectural Topologies</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Engine Model -->
+<div class="bg-panel-surface border border-secondary/20 rounded-DEFAULT p-6 relative overflow-hidden group hover:border-tactical-amber/50 transition-colors">
+<div class="absolute top-0 left-0 w-full h-[2px] bg-tactical-amber opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-tactical-amber">settings_input_component</span>
+<h3 class="font-label-caps text-label-caps text-on-surface">ENGINE RUL (BiLSTM + Attention)</h3>
+</div>
+<span class="px-2 py-1 bg-status-optimal/10 text-status-optimal font-label-caps text-[10px] rounded-sm border border-status-optimal/20">NOMINAL</span>
+</div>
+<div class="mb-6">
+<div class="font-data-display text-data-display text-on-surface">BiLSTM + Attention</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-1">Sequence-to-sequence remaining useful life prediction.</div>
+</div>
+<div class="space-y-2 font-label-caps text-[10px] text-on-surface-variant/60">
+<div class="flex justify-between border-b border-secondary/10 pb-1">
+<span class="">ACCURACY</span>
+<span class="text-on-surface">98.4%</span>
+</div>
+<div class="flex justify-between border-b border-secondary/10 pb-1">
+<span class="">LATENCY</span>
+<span class="text-on-surface">12ms</span>
+</div>
+</div>
+</div>
+<!-- Hydraulics Model -->
+<div class="bg-panel-surface border border-secondary/20 rounded-DEFAULT p-6 relative overflow-hidden group hover:border-tactical-amber/50 transition-colors">
+<div class="absolute top-0 left-0 w-full h-[2px] bg-status-critical opacity-100 glow-active"></div>
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-status-critical">water_drop</span>
+<h3 class="font-label-caps text-label-caps text-on-surface">HYDRAULICS (1D Conv Autoencoder)</h3>
+</div>
+<span class="px-2 py-1 bg-status-critical/10 text-status-critical font-label-caps text-[10px] rounded-sm border border-status-critical/20 animate-pulse">ATTENTION</span>
+</div>
+<div class="mb-6">
+<div class="font-data-display text-data-display text-on-surface">1D Conv Autoencoder</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-1">Unsupervised anomaly detection in pressure telemetry.</div>
+</div>
+<div class="space-y-2 font-label-caps text-[10px] text-on-surface-variant/60">
+<div class="flex justify-between border-b border-secondary/10 pb-1">
+<span class="">F1 SCORE</span>
+<span class="text-on-surface">0.94</span>
+</div>
+<div class="flex justify-between border-b border-secondary/10 pb-1">
+<span class="">ANOMALY RATE</span>
+<span class="text-status-critical">0.02%</span>
+</div>
+</div>
+</div>
+<!-- Landing Gear Model -->
+<div class="bg-panel-surface border border-secondary/20 rounded-DEFAULT p-6 relative overflow-hidden group hover:border-tactical-amber/50 transition-colors">
+<div class="absolute top-0 left-0 w-full h-[2px] bg-tactical-amber opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-tactical-amber">flight_land</span>
+<h3 class="font-label-caps text-label-caps text-on-surface">LANDING GEAR (XGBoost)</h3>
+</div>
+<span class="px-2 py-1 bg-status-optimal/10 text-status-optimal font-label-caps text-[10px] rounded-sm border border-status-optimal/20">NOMINAL</span>
+</div>
+<div class="mb-6">
+<div class="font-data-display text-data-display text-on-surface">XGBoost</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-1">Structural fatigue classification and shock absorption multi-class.</div>
+</div>
+<div class="space-y-2 font-label-caps text-[10px] text-on-surface-variant/60">
+<div class="flex justify-between border-b border-secondary/10 pb-1">
+<span class="">PRECISION</span>
+<span class="text-on-surface">97.1%</span>
+</div>
+<div class="flex justify-between border-b border-secondary/10 pb-1">
+<span class="">RECALL</span>
+<span class="text-on-surface">96.8%</span>
+</div>
+</div>
+</div>
+<!-- Avionics Model -->
+<div class="bg-panel-surface border border-secondary/20 rounded-DEFAULT p-6 relative overflow-hidden group hover:border-tactical-amber/50 transition-colors"><div class="absolute top-0 left-0 w-full h-[2px] bg-tactical-amber opacity-0 group-hover:opacity-100 transition-opacity"></div><div class="flex justify-between items-start mb-6"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-tactical-amber">thermostat</span><h3 class="font-label-caps text-label-caps text-on-surface">ECS SUBSYSTEM</h3></div><span class="px-2 py-1 bg-status-optimal/10 text-status-optimal font-label-caps text-[10px] rounded-sm border border-status-optimal/20">NOMINAL</span></div><div class="mb-6"><div class="font-data-display text-data-display text-on-surface">Cross-Domain Fusion</div><div class="font-body-sm text-body-sm text-on-surface-variant mt-1">Brayton-cycle simulation logic for environmental control health.</div></div><div class="space-y-2 font-label-caps text-[10px] text-on-surface-variant/60"><div class="flex justify-between border-b border-secondary/10 pb-1"><span class="">FUSION LOGIC</span><span class="text-on-surface">ACTIVE</span></div><div class="flex justify-between border-b border-secondary/10 pb-1"><span class="">SIMULATOR</span><span class="text-on-surface">BRAYTON</span></div></div></div>
+<!-- APU Model -->
+<div class="bg-panel-surface border border-secondary/20 rounded-DEFAULT p-6 relative overflow-hidden group hover:border-tactical-amber/50 transition-colors">
+<div class="absolute top-0 left-0 w-full h-[2px] bg-tactical-amber opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-tactical-amber">power</span>
+<h3 class="font-label-caps text-label-caps text-on-surface">AUX POWER UNIT</h3>
+</div>
+<span class="px-2 py-1 bg-status-optimal/10 text-status-optimal font-label-caps text-[10px] rounded-sm border border-status-optimal/20">NOMINAL</span>
+</div>
+<div class="mb-6">
+<div class="font-data-display text-data-display text-on-surface">Transformer</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-1">Thermal event forecasting and startup anomaly detection.</div>
+</div>
+<div class="space-y-2 font-label-caps text-[10px] text-on-surface-variant/60">
+<div class="flex justify-between border-b border-secondary/10 pb-1">
+<span class="">RMSE</span>
+<span class="text-on-surface">0.05</span>
+</div>
+<div class="flex justify-between border-b border-secondary/10 pb-1">
+<span class="">HORIZON</span>
+<span class="text-on-surface">48hrs</span>
+</div>
+</div>
+</div>
+</div>
+</section><section class="py-24 px-margin-desktop max-w-container-max mx-auto relative z-20 bg-obsidian-base border-t border-secondary/10">
+<div class="mb-16 border-l-2 border-tactical-amber pl-6">
+<h2 class="font-headline-md text-headline-md text-tactical-amber uppercase tracking-widest">System Architecture</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-2">Multi-Subsystem Data Fusion &amp; Risk Profiling</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-12 items-center">
+<div class="md:col-span-2 relative rounded overflow-hidden border border-tactical-amber/20 shadow-2xl bg-surface-container-lowest">
+<img alt="System Architecture Diagram" class="w-full h-auto object-cover mix-blend-screen opacity-90" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkNYBggc_S9Vn5eoa6ReRSNJnDytiOML0rc_2nMOvFej1peA-pascVLeAnLEzsWNil7FYGgYDaDkCBU3H18uMG5i6ZlnAqvGAfwDffDDSwRa4-yH3FjY3JTL5XQ6x9s5oHlYk66UtA1OXxH7PZOdb3lB4cvhDErP35E1e96vlyGTTz6kE3PY0gpMx-_F7xdvnFsVZ3bwZRmMzQ53qunDmSh9pdFkBJ3eOJ3RhwCkt6Pm7zD_zNl2yBR00y8dX4Xv2zF06t0G8n2u4"/>
+<div class="absolute top-4 left-4 bg-obsidian-base/80 px-3 py-1 border border-tactical-amber/30 backdrop-blur-sm">
+<span class="font-label-caps text-[10px] text-tactical-amber tracking-widest">FUSION TOPOLOGY V4.0</span>
+</div>
+</div>
+<div class="flex flex-col gap-6">
+<div class="bg-panel-surface p-6 border-l-2 border-bronze-oxide">
+<p class="font-body-lg text-on-surface-variant/90 leading-relaxed">
+          Our platform utilizes a multi-subsystem data fusion architecture to aggregate health scores from engine, hydraulics, and landing gear into a unified aircraft risk profile.
+        </p>
+</div>
+<div class="space-y-4">
+<div class="flex items-center gap-3 text-bronze-oxide">
+<span class="material-symbols-outlined text-[20px]">hub</span>
+<span class="font-label-caps text-label-caps">Unified Data Bus</span>
+</div>
+<div class="flex items-center gap-3 text-bronze-oxide">
+<span class="material-symbols-outlined text-[20px]">analytics</span>
+<span class="font-label-caps text-label-caps">Risk Aggregation Engine</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- How it Works Section -->
+<section class="py-24 px-margin-desktop relative z-20 bg-surface-container-lowest overflow-hidden">
+<div class="absolute inset-0 opacity-20 z-0">
+<img alt="Aircraft Data Flow Background" class="w-full h-full object-cover mix-blend-screen" src="https://lh3.googleusercontent.com/aida/AP1WRLty2nAJJz_vclviDO_es2Y8rTwUdwRRsEhw5x8OD-PAlRHXPyFoaOQj_nUS_3bbNwZzMS9f1kSF3GHgomTgENNR4GnioeuMlPRt7viMl4Q_HLEUEsxhl2O5h5z4qOLcnAy6zedDcptyrOdwWqA3x2J5J-SyLgOdZP0blowX77wwfoFIpqZzDH6YP6BFKmqgjnygprz9yqVJyfBx6NJybyWMOk3meOyGNvCZW9lv-RdjBJHNSedWGqpeJg"/>
+<div class="absolute inset-0 bg-obsidian-base/80"></div>
+</div>
+<div class="max-w-container-max mx-auto relative z-10">
+<div class="mb-16 border-l-2 border-tactical-amber pl-6">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">ARCHITECTURAL TOPOLOGY</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant/80 mt-4 max-w-2xl">Data ingestion from thousands of airborne sensors, fused via our FastAPI fusion backend and Brayton-cycle simulator to predict component fatigue before failure.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+<div class="bg-obsidian-base/90 p-6 rounded border border-secondary/10 backdrop-blur-sm">
+<div class="text-tactical-amber font-data-display text-[32px] mb-4">01</div>
+<h4 class="font-label-caps text-label-caps text-on-surface mb-2">TELEMETRY INGESTION (ARINC 429)</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant/70">Continuous streaming of pressure, temperature, and vibration metrics via secure ARINC 429 databuses.</p>
+</div>
+<div class="bg-obsidian-base/90 p-6 rounded border border-secondary/10 backdrop-blur-sm">
+<div class="text-tactical-amber font-data-display text-[32px] mb-4">02</div>
+<h4 class="font-label-caps text-label-caps text-on-surface mb-2">FEATURE EXTRACTION (NORMALIZATION)</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant/70">Automated signal processing pipelines filtering noise and isolating critical condition indicators.</p>
+</div>
+<div class="bg-obsidian-base/90 p-6 rounded border border-secondary/10 backdrop-blur-sm">
+<div class="text-tactical-amber font-data-display text-[32px] mb-4">03</div>
+<h4 class="font-label-caps text-label-caps text-on-surface mb-2">SUBSYSTEM INFERENCE (ML FLOW)</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant/70">Independent ML models analyze specific component health, generating localized probability distributions.</p>
+</div>
+<div class="bg-obsidian-base/90 p-6 rounded border border-secondary/10 backdrop-blur-sm">
+<div class="text-tactical-amber font-data-display text-[32px] mb-4">04</div>
+<h4 class="font-label-caps text-label-caps text-on-surface mb-2">FUSION ORCHESTRATION (FASTAPI)</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant/70">Meta-learner synthesizes localized outputs into a holistic aircraft health score and predictive maintenance schedule.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Precision Intelligence Section -->
+<section class="py-24 px-margin-desktop max-w-container-max mx-auto relative z-20 flex flex-col md:flex-row items-center gap-12">
+<div class="w-full md:w-1/2">
+<div class="mb-8 border-b border-secondary/20 pb-4 inline-block">
+<h2 class="font-headline-md text-headline-md text-tactical-amber">PRECISION INTELLIGENCE</h2>
+</div>
+<h3 class="font-headline-lg text-headline-lg text-on-surface mb-6">Deep Neural Networks for Unparalleled Foresight</h3>
+<p class="font-body-lg text-body-lg text-on-surface-variant/80 mb-6">
+                Our BiLSTM + Attention architecture captures complex, long-term temporal dependencies in engine degradation patterns. By dynamically weighting historical sensor data, the model achieves zero-AOG precision in remaining useful life (RUL) estimation.
+            </p>
+<ul class="space-y-4 font-body-sm text-on-surface-variant">
+<li class="flex items-center gap-3">
+<span class="material-symbols-outlined text-tactical-amber text-[20px]">check_circle</span>
+<span class="">Attention mechanism focuses on critical deterioration phases</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="material-symbols-outlined text-tactical-amber text-[20px]">check_circle</span>
+<span class="">Bidirectional LSTM processes sequences forward and backward</span>
+</li>
+<li class="flex items-center gap-3">
+<span class="material-symbols-outlined text-tactical-amber text-[20px]">check_circle</span>
+<span class="">Robust against sensor noise and intermittent data loss</span>
+</li>
+</ul>
+</div>
+<div class="w-full md:w-1/2 relative rounded overflow-hidden border border-secondary/20 shadow-2xl">
+<img alt="Neural Network Topology" class="w-full h-auto object-cover" src="https://lh3.googleusercontent.com/aida/AP1WRLtU7yOO4Z1lC0CRLHqDf6BXDuuip-cRSfvy_kBIzRFvExbNqWTroSXYhCnccILAvVXL2M14mk3-nwbF84nZVuJCxppoThgRyJvBE1W_pIj0zymUNQeMX_cmgRSQkEfrQVvtxd39--TxdD5UK08TLGGJnyaVMpLBa-_6QoVlIsJPiMvaJjtIedWDOAVQgRAwsbhFBda7Gjl6SI-Z_TD25feXr3yZaQi-jb2jZayWy8G_j1UOPOFOahlm8U8"/>
+<div class="absolute bottom-4 left-4 bg-obsidian-base/90 px-3 py-1.5 rounded border border-tactical-amber/30 backdrop-blur-md">
+<span class="font-label-caps text-label-caps text-tactical-amber tracking-widest">MODEL TOPOLOGY VISUALIZATION</span>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-lowest w-full border-t border-secondary/20 py-12 px-margin-desktop relative z-30">
+<div class="max-w-container-max mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-12 border-b border-secondary/10 pb-12">
+<div class="col-span-1 md:col-span-2">
+<div class="font-headline-md text-headline-md text-tactical-amber tracking-tighter mb-4">AeroSentinal</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant/70 max-w-sm">
+                    Advanced predictive maintenance solutions leveraging fusion-orchestrated machine learning for next-generation aerospace reliability.
+                </p>
+</div>
+<div>
+<h4 class="font-label-caps text-label-caps text-on-surface mb-6">SYSTEM PORTALS</h4>
+<ul class="space-y-3 font-body-sm text-on-surface-variant/80">
+<li class=""><a class="hover:text-tactical-amber transition-colors" href="#">Operations Dashboard</a></li>
+<li class=""><a class="hover:text-tactical-amber transition-colors" href="#">Flight Simulator</a></li>
+<li class=""><a class="hover:text-tactical-amber transition-colors" href="#">Model Registry</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-label-caps text-label-caps text-on-surface mb-6">RESOURCES</h4>
+<ul class="space-y-3 font-body-sm text-on-surface-variant/80">
+<li class=""><a class="hover:text-tactical-amber transition-colors" href="#">API Documentation</a></li>
+<li class=""><a class="hover:text-tactical-amber transition-colors" href="#">Architecture Whitepaper</a></li>
+<li class=""><a class="hover:text-tactical-amber transition-colors" href="#">Support Protocol</a></li>
+</ul>
+</div>
+</div>
+<div class="max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="font-data-display text-label-caps text-bronze-oxide flex items-center gap-4">
+<span class="">© 2024 AEROSENTINAL AEROSPACE</span>
+<span class="w-1 h-1 bg-bronze-oxide rounded-full"></span>
+<span class="text-status-optimal flex items-center gap-2">
+<span class="w-2 h-2 bg-status-optimal rounded-full animate-pulse"></span>
+                    SYSTEM STATUS: OPTIMAL
+                </span>
+</div>
+<div class="flex flex-wrap gap-6 font-data-display text-label-caps text-bronze-oxide/60">
+<span class="cursor-default">UPTIME: 99.99%</span>
+<span class="cursor-default">DATA LINK: ENCRYPTED</span>
+<span class="cursor-default">SATCOM: ACTIVE</span>
+</div>
+</div>
+</footer>
+</body></html>

@@ -1,131 +1,234 @@
 "use client";
 
-import { useEffect } from "react";
 import { useStore } from "@/lib/store";
-import { Plane, AlertTriangle, ShieldAlert, CheckCircle2, DollarSign } from "lucide-react";
-import Link from "next/link";
-import clsx from "clsx";
+import { useEffect } from "react";
+import AircraftModel from "@/components/3d/AircraftModel";
+import { Filter } from "lucide-react";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, Environment } from "@react-three/drei";
 
-export default function DashboardPage() {
-  const { aircraft, fetchHealth, checkBackend } = useStore();
+export default function Dashboard() {
+  const { aircraft, logs = [] } = useStore();
 
-  useEffect(() => {
-    checkBackend();
-    fetchHealth();
-  }, []);
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Healthy': return <CheckCircle2 className="w-5 h-5 text-emerald-400" />;
-      case 'Warning': return <AlertTriangle className="w-5 h-5 text-amber-400" />;
-      case 'Critical': return <ShieldAlert className="w-5 h-5 text-rose-500 animate-pulse" />;
-      default: return null;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Healthy': return "text-emerald-400 border-emerald-500/30";
-      case 'Warning': return "text-amber-400 border-amber-500/30";
-      case 'Critical': return "text-rose-500 border-rose-500/30";
-      default: return "text-gray-400 border-white/10";
-    }
-  };
-
-  const hasAlerts = aircraft.globalHealthScore < 75;
+  // Determine system status based on aircraft state
+  const hasHydraulicsFault = aircraft.hydraulics.status !== "Healthy";
+  const hasEngineFault = aircraft.engine.status !== "Healthy";
+  const hasEcsFault = aircraft.ecs.status !== "Healthy";
+  const engineRUL = aircraft.engine.metrics.rulCycles ?? 98;
+  const faults = aircraft.crossDomainAlerts || [];
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight">Fleet Overview</h1>
-        <p className="text-gray-400 mt-1">Real-time health monitoring and predictive analytics.</p>
-      </header>
-
-      {/* Summary Strip */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="glass-panel p-6 flex flex-col justify-center">
-          <div className="text-sm text-gray-400 font-medium uppercase tracking-wider mb-2">Fleet Status</div>
-          <div className="flex items-center gap-4">
-            <div className="text-4xl font-bold text-white">1</div>
-            <div className="text-sm text-gray-400">Active<br/>Aircraft</div>
-          </div>
-        </div>
-
-        <div className="glass-panel p-6 border-l-4 border-l-amber-500">
-          <div className="text-sm text-gray-400 font-medium uppercase tracking-wider mb-2">Active Alerts</div>
-          <div className="flex items-center gap-4">
-            <div className={clsx("text-4xl font-bold", hasAlerts ? "text-amber-400" : "text-emerald-400")}>
-              {hasAlerts ? 1 : 0}
-            </div>
-            <div className="text-sm text-gray-400">Subsystem<br/>Warnings</div>
-          </div>
-        </div>
-
-        <div className="glass-panel p-6 border-l-4 border-l-rose-500">
-          <div className="text-sm text-gray-400 font-medium uppercase tracking-wider mb-2">Total AOG Risk Exposure</div>
-          <div className="flex items-center gap-4">
-            <div className="text-4xl font-bold text-rose-400 font-mono">
-              ${(aircraft.aogRisk.totalRiskUsd / 1000).toFixed(0)}K
-            </div>
-            <div className="text-sm text-gray-400">Estimated<br/>Impact</div>
-          </div>
-        </div>
+    <main className="flex-grow relative flex flex-col items-center justify-center min-h-[calc(100vh-140px)] w-full">
+      {/* Background Layer */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          alt="" 
+          className="w-full h-full object-cover opacity-30 mix-blend-screen pointer-events-none" 
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuBynMnKqD519f0vFCofhAhce83aySb9sIBNur9qYgRMZrlXX59EwDjng4mSCjvtx6YBnWwes7Ur6EaGuA3N7o5vxKnVLj5BGC5SbUk1fQaMB2nN3eCg9m0kXUJkrL2NmZ8fwoQvM7v568VjL8sA7CIYatJYE7yEWTfDYS28TfKhBngrualBAReGEFOs5cF6w0xyXC5xx062gB7E6YKQqa-g3WY9P14K8xBApwBa3ezZatIjFjjIr_niPBfN3G0kNW9POMauvFtNV-E" 
+        />
+        <div className="absolute inset-0 grid-bg pointer-events-none"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-obsidian-base via-transparent to-obsidian-base pointer-events-none"></div>
       </div>
 
-      {/* Fleet Grid */}
-      <section>
-        <h2 className="text-xl font-bold mb-6">Monitored Aircraft</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Link href={`/dashboard/aircraft/${aircraft.aircraftId}`} className="group block">
-            <div className={clsx(
-              "glass-panel glass-panel-hover p-6 border-t-4 transition-all duration-300 h-full flex flex-col",
-              getStatusColor(aircraft.globalHealthScore >= 75 ? 'Healthy' : aircraft.globalHealthScore >= 50 ? 'Warning' : 'Critical')
-            )}>
-              <div className="flex justify-between items-start mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
-                    <Plane className="w-5 h-5 text-gray-300 group-hover:text-primary-400 transition-colors" />
+      <div className="relative z-10 w-full max-w-[1440px] mx-auto px-8 lg:px-12 py-8 flex-grow flex flex-col md:flex-row gap-8">
+        
+        {/* Left Panel: Subsystem Status */}
+        <aside className="w-full md:w-1/4 flex flex-col gap-1">
+          <div className="bg-panel-surface border border-secondary/20 rounded p-4 flex flex-col gap-4">
+            <h2 className="text-[11px] font-bold uppercase tracking-widest text-bronze-oxide border-b border-secondary/20 pb-2 mb-2">
+              Subsystem Health
+            </h2>
+            
+            {/* Engine */}
+            <div className={`flex flex-col gap-1 border-t-2 pt-2 ${hasEngineFault ? "border-status-critical tactical-glow" : "border-tactical-amber"}`}>
+              {hasEngineFault && (
+                <div className="flex gap-2 items-start border-l-2 border-status-critical pl-2 bg-surface-container-low/50 p-2 mb-2">
+                  <span className="text-on-surface-variant/70 min-w-[60px] text-xs">WARNING</span>
+                  <div className="flex flex-col">
+                    <span className="text-status-critical font-bold text-xs">ENGINE L/R (BiLSTM)</span>
+                    <span className="text-on-surface text-xs">RUL degradation detected.</span>
                   </div>
-                  <div>
-                    <h3 className="text-xl font-bold font-mono">{aircraft.aircraftId}</h3>
-                    <div className="text-xs text-gray-400 uppercase tracking-widest">Boeing 737 MAX 8</div>
+                </div>
+              )}
+              <div className="flex justify-between items-center text-[11px] font-bold uppercase tracking-widest text-on-surface">
+                <span>ENGINE L/R (BiLSTM)</span>
+                <span className={hasEngineFault ? "text-status-critical critical-blink" : "text-tactical-amber"}>
+                  {engineRUL}% RUL
+                </span>
+              </div>
+              <div className="w-full bg-surface-dim border border-secondary/10 h-2 rounded-full overflow-hidden">
+                <div className={`${hasEngineFault ? "bg-status-critical" : "bg-tactical-amber"} h-full`} style={{ width: `${engineRUL}%` }}></div>
+              </div>
+            </div>
+
+            {/* Hydraulics */}
+            <div className={`flex flex-col gap-1 border-t-2 pt-2 ${hasHydraulicsFault ? "border-status-critical tactical-glow" : "border-status-optimal"}`}>
+              <div className="flex justify-between items-center text-[11px] font-bold uppercase tracking-widest text-on-surface">
+                <span>HYDRAULICS (Autoencoder)</span>
+                {hasHydraulicsFault ? (
+                  <span className="text-status-critical critical-blink">ANOMALY</span>
+                ) : (
+                  <span className="text-status-optimal">NOMINAL</span>
+                )}
+              </div>
+              <div className="w-full bg-surface-dim border border-secondary/10 h-2 rounded-full overflow-hidden">
+                <div className={`${hasHydraulicsFault ? "bg-status-critical" : "bg-status-optimal"} h-full`} style={{ width: hasHydraulicsFault ? "45%" : "98%" }}></div>
+              </div>
+            </div>
+
+            {/* Landing Gear */}
+            <div className="flex flex-col gap-1 border-t-2 border-status-optimal pt-2">
+              <div className="flex justify-between items-center text-[11px] font-bold uppercase tracking-widest text-on-surface">
+                <span>LANDING GEAR (XGBoost)</span>
+                <span className="text-status-optimal">NOMINAL</span>
+              </div>
+              <div className="w-full bg-surface-dim border border-secondary/10 h-2 rounded-full overflow-hidden">
+                <div className="bg-status-optimal h-full" style={{ width: "98%" }}></div>
+              </div>
+            </div>
+
+            {/* ECS */}
+            <div className={`flex flex-col gap-1 border-t-2 pt-2 ${hasEcsFault ? "border-status-critical tactical-glow" : "border-status-optimal"}`}>
+              <div className="flex justify-between items-center text-[11px] font-bold uppercase tracking-widest text-on-surface">
+                <span>ECS</span>
+                {hasEcsFault ? (
+                  <span className="text-status-critical critical-blink">FAULT</span>
+                ) : (
+                  <span className="text-status-optimal">NOMINAL</span>
+                )}
+              </div>
+              <div className="w-full bg-surface-dim border border-secondary/10 h-2 rounded-full overflow-hidden">
+                <div className={`${hasEcsFault ? "bg-status-critical" : "bg-status-optimal"} h-full`} style={{ width: hasEcsFault ? "20%" : "95%" }}></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Model Confidence */}
+          <div className="bg-panel-surface border border-secondary/20 rounded p-4 mt-auto">
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-bronze-oxide mb-2 border-b border-secondary/20 pb-1">
+              Model Inference
+            </h3>
+            {hasEcsFault ? (
+              <div className="flex gap-2 items-start border-l-2 border-status-critical pl-2 bg-surface-container-low/50 p-2 mb-2">
+                <span className="text-on-surface-variant/70 min-w-[60px] text-xs">LIVE</span>
+                <div className="flex flex-col">
+                  <span className="text-status-critical font-bold text-xs">ECS DEGRADATION</span>
+                  <span className="text-on-surface text-xs">Valve unresponsive in cooling loop.</span>
+                </div>
+              </div>
+            ) : (
+               <div className="flex gap-2 items-start border-l-2 border-tactical-amber pl-2 bg-surface-container-low/50 p-2 mb-2">
+                <span className="text-on-surface-variant/70 min-w-[60px] text-xs">SYS</span>
+                <div className="flex flex-col">
+                  <span className="text-tactical-amber font-bold text-xs">NOMINAL OPS</span>
+                  <span className="text-on-surface text-xs">All inference targets within bounds.</span>
+                </div>
+              </div>
+            )}
+            <div className="flex justify-between items-center text-[18px] tracking-wide font-medium text-on-surface">
+              <span>CONFIDENCE:</span>
+              <span className={hasEcsFault ? "text-status-critical" : "text-tactical-amber"}>
+                {hasEcsFault ? "98.7%" : "94.2%"}
+              </span>
+            </div>
+            <div className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant/70 mt-2">
+              DATASET: NASA C-MAPSS, UCI HYD, SYNTHETIC
+            </div>
+          </div>
+        </aside>
+
+        {/* Center Panel: 3D Viz */}
+        <section className="w-full md:w-1/2 flex flex-col relative min-h-[400px] border border-secondary/20 rounded bg-surface-dim/80 overflow-hidden backdrop-blur-sm">
+          <div className="absolute top-4 left-4 z-20 text-[11px] font-bold uppercase tracking-widest text-bronze-oxide">
+            ASSET: A/C-77X <span className="text-on-surface-variant">/</span> MAIN FUSELAGE
+          </div>
+          
+          <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
+            {faults.map((alert, idx) => (
+              <span key={idx} className="bg-status-critical text-on-error text-[11px] font-bold uppercase tracking-widest px-2 py-1 rounded critical-blink shadow-[0_0_8px_var(--color-status-critical)]">
+                {alert}
+              </span>
+            ))}
+          </div>
+
+          {/* 3D Model */}
+          <div className="flex-grow w-full h-full relative">
+             <Canvas camera={{ position: [0, 5, 15], fov: 50 }}>
+               <ambientLight intensity={0.5} />
+               <directionalLight position={[10, 10, 5]} intensity={1} />
+               <Environment preset="city" />
+               <AircraftModel faults={faults.map(f => ({ subsystem: f.toLowerCase().includes('hydraulic') ? 'hydraulics' : f.toLowerCase().includes('engine') ? 'engine' : 'ecs' }))} />
+               <OrbitControls enablePan={false} maxPolarAngle={Math.PI / 1.5} minDistance={5} maxDistance={20} />
+             </Canvas>
+          </div>
+
+          <div className="absolute bottom-4 left-0 w-full px-4 flex justify-between items-end z-20 pointer-events-none">
+            <div className="text-[18px] tracking-wide font-medium text-on-surface bg-surface-dim/50 p-2 rounded backdrop-blur">
+              M. 0.82 <br /> <span className="text-bronze-oxide text-sm">FL350</span>
+            </div>
+            <div className="flex gap-4 bg-surface-dim/50 p-2 rounded backdrop-blur">
+              <div className="text-center">
+                <div className="text-[11px] font-bold uppercase tracking-widest text-bronze-oxide">PITCH</div>
+                <div className="text-[18px] tracking-wide font-medium text-on-surface">+2.4°</div>
+              </div>
+              <div className="text-center">
+                <div className="text-[11px] font-bold uppercase tracking-widest text-bronze-oxide">ROLL</div>
+                <div className="text-[18px] tracking-wide font-medium text-on-surface">0.0°</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Right Panel: Event Log */}
+        <aside className="w-full md:w-1/4 flex flex-col">
+          <div className="bg-panel-surface border border-secondary/20 rounded h-full flex flex-col">
+            <div className="p-4 border-b border-secondary/20 flex justify-between items-center">
+              <h2 className="text-[11px] font-bold uppercase tracking-widest text-bronze-oxide">Event Log</h2>
+              <Filter className="w-4 h-4 text-bronze-oxide" />
+            </div>
+            <div className="flex-grow overflow-y-auto p-4 flex flex-col gap-2 text-[11px] font-bold uppercase tracking-widest">
+              
+              {logs.map(log => {
+                let borderClass = "border-secondary/30";
+                let textClass = "text-bronze-oxide";
+                
+                if (log.level === "CRITICAL") {
+                  borderClass = "border-status-critical";
+                  textClass = "text-status-critical";
+                } else if (log.level === "WARNING") {
+                  borderClass = "border-tactical-amber";
+                  textClass = "text-tactical-amber";
+                }
+
+                return (
+                  <div key={log.id} className={`flex gap-2 items-start border-l-2 ${borderClass} pl-2 bg-surface-dim/50 p-2`}>
+                    <span className="text-on-surface-variant/70 min-w-[60px]">{log.timestamp.split('T')[1].substring(0, 8)}</span>
+                    <div className="flex flex-col">
+                      <span className={`${textClass} font-bold`}>{log.level}: {log.message}</span>
+                      <span className="text-on-surface/70 mt-1 capitalize">{log.subsystem} Subsystem</span>
+                    </div>
                   </div>
-                </div>
-                {getStatusIcon(aircraft.globalHealthScore >= 75 ? 'Healthy' : aircraft.globalHealthScore >= 50 ? 'Warning' : 'Critical')}
-              </div>
+                )
+              })}
 
-              <div className="mb-6 flex-1">
-                <div className="flex justify-between items-end mb-2">
-                  <div className="text-sm text-gray-400">Global Health Score</div>
-                  <div className="text-3xl font-bold font-mono text-white">{aircraft.globalHealthScore}%</div>
-                </div>
-                <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                  <div 
-                    className={clsx("h-full transition-all duration-1000", aircraft.globalHealthScore >= 75 ? "bg-emerald-500" : aircraft.globalHealthScore >= 50 ? "bg-amber-500" : "bg-rose-500")}
-                    style={{ width: `${aircraft.globalHealthScore}%` }}
-                  />
-                </div>
-              </div>
-
-              {aircraft.acarsMessage && (
-                <div className="mt-auto p-3 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-gray-300 truncate">
-                  <span className="text-primary-400 font-bold mr-2">ACARS</span>
-                  {aircraft.acarsMessage}
+              {logs.length === 0 && (
+                <div className="flex gap-2 items-start border-l-2 border-status-optimal pl-2 p-2">
+                  <span className="text-on-surface-variant/70 min-w-[60px]">--:--:--</span>
+                  <div className="flex flex-col">
+                    <span className="text-status-optimal font-bold">SYSTEM READY</span>
+                    <span className="text-on-surface">Awaiting telemetry...</span>
+                  </div>
                 </div>
               )}
             </div>
-          </Link>
-
-          {/* Placeholder for scaling */}
-          <div className="glass-panel p-6 border-dashed border-white/20 flex flex-col items-center justify-center text-center opacity-50 grayscale">
-            <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-4">
-              <span className="text-2xl font-bold text-gray-500">+</span>
+            <div className="p-4 border-t border-secondary/20">
+              <button className="w-full bg-tactical-amber text-on-primary-fixed text-[11px] font-bold uppercase tracking-widest py-2 rounded hover:bg-primary-fixed-dim transition-colors active:scale-95">
+                EXPORT LOGS
+              </button>
             </div>
-            <h3 className="font-bold text-gray-400 mb-1">Add Aircraft</h3>
-            <p className="text-xs text-gray-500">Connect telemetry stream</p>
           </div>
-        </div>
-      </section>
-    </div>
+        </aside>
+      </div>
+    </main>
   );
 }

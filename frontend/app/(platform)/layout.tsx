@@ -2,100 +2,76 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
-import { Plane, Settings, LayoutDashboard, BookOpen, AlertCircle } from "lucide-react";
-import clsx from "clsx";
-import { useStore } from "@/lib/store";
+import { Bell, Settings, User } from "lucide-react";
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { backendOnline } = useStore();
-  // Client-only clock — starts null so SSR and initial client render both output nothing,
-  // eliminating the second-level hydration mismatch.
-  const [zuluTime, setZuluTime] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fmt = () => {
-      const now = new Date();
-      const date = now.toISOString().split('T')[0];
-      const time = now.toISOString().split('T')[1].substring(0, 8);
-      setZuluTime(`${date} | ZULU: ${time}`);
-    };
-    fmt();
-    const id = setInterval(fmt, 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const navItems = [
-    { name: "Fleet Overview", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Aircraft Diagnostics", href: "/dashboard/aircraft/N1234A", icon: Plane },
-    { name: "Repair Assistant", href: "/dashboard/assistant", icon: BookOpen },
-    { name: "System Settings", href: "/dashboard/settings", icon: Settings },
+  const navLinks = [
+    { href: "/dashboard", label: "DASHBOARD" },
+    { href: "/simulator", label: "SIMULATOR" },
+    { href: "/ml-models", label: "ML MODELS" },
+    { href: "/docs", label: "DOCUMENTATION" },
   ];
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      {/* Sidebar */}
-      <aside className="w-64 flex-shrink-0 border-r border-white/10 glass-panel border-y-0 border-l-0 rounded-none z-20 flex flex-col">
-        <div className="h-16 flex items-center px-6 border-b border-white/10">
-          <Link href="/" className="text-xl font-bold text-gradient tracking-tight">AeroSentinal</Link>
-        </div>
-
-        <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
-          <div className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Platform</div>
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={clsx(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg transition-all font-medium text-sm",
-                  isActive 
-                    ? "bg-primary-500/10 text-primary-400" 
-                    : "text-gray-400 hover:text-gray-200 hover:bg-white/5"
-                )}
-              >
-                <item.icon className={clsx("w-5 h-5", isActive ? "text-primary-400" : "text-gray-500")} />
-                {item.name}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="p-4 border-t border-white/10">
-          <div className={clsx(
-            "px-3 py-2 rounded-lg flex items-center gap-3 text-sm",
-            backendOnline ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
-          )}>
-            <div className={clsx("w-2 h-2 rounded-full animate-pulse", backendOnline ? "bg-emerald-400" : "bg-amber-400")} />
-            {backendOnline ? "Backend Online" : "Offline / Mocked"}
+    <div className="bg-obsidian-base text-on-surface font-sans min-h-screen flex flex-col overflow-x-hidden pt-[73px]">
+      {/* TopNavBar */}
+      <header className="w-full fixed top-0 left-0 z-50 bg-obsidian-base border-b border-secondary/20">
+        <div className="flex justify-between items-center px-8 lg:px-12 py-4 max-w-[1440px] mx-auto">
+          <div className="flex items-center gap-8">
+            <Link href="/" className="text-2xl font-bold text-tactical-amber tracking-tighter uppercase">
+              AeroSentinal
+            </Link>
+            <nav className="hidden md:flex items-center gap-6 text-[11px] font-bold uppercase tracking-widest">
+              {navLinks.map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link 
+                    key={link.href}
+                    href={link.href}
+                    className={`transition-all duration-200 active:scale-95 ${
+                      isActive 
+                        ? "text-tactical-amber border-b-2 border-tactical-amber pb-1" 
+                        : "text-on-surface-variant/70 hover:text-tactical-amber"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Topbar */}
-        <header className="h-16 flex-shrink-0 glass-panel border-x-0 border-t-0 rounded-none flex items-center justify-between px-8 z-10">
-          <div className="text-sm text-gray-400 font-mono">
-            {zuluTime ?? '——————————————'}
-          </div>
-          <div className="flex items-center gap-4">
-            <button className="text-gray-400 hover:text-white transition-colors">
-              <AlertCircle className="w-5 h-5" />
+          <div className="flex items-center gap-4 text-on-surface-variant/70">
+            <button aria-label="Notifications" className="hover:text-tactical-amber transition-colors duration-200">
+              <Bell className="w-5 h-5 fill-current" />
             </button>
-            <div className="w-8 h-8 rounded-full bg-primary-500/20 border border-primary-500/30 flex items-center justify-center text-primary-400 font-bold text-xs">
-              DS
-            </div>
+            <button aria-label="Settings" className="hover:text-tactical-amber transition-colors duration-200">
+              <Settings className="w-5 h-5 fill-current" />
+            </button>
+            <button aria-label="Account" className="hover:text-tactical-amber transition-colors duration-200">
+              <User className="w-5 h-5 fill-current" />
+            </button>
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Scrollable Content */}
-        <main className="flex-1 overflow-y-auto p-8 relative">
-          {children}
-        </main>
-      </div>
+      {/* Main Content Area */}
+      {children}
+
+      {/* Footer */}
+      <footer className="w-full border-t border-secondary/10 bg-surface-container-lowest mt-auto">
+        <div className="flex flex-col md:flex-row justify-between items-center px-8 lg:px-12 py-6 max-w-[1440px] mx-auto gap-4 text-[11px] font-bold uppercase tracking-widest">
+          <div className="text-bronze-oxide">
+            © 2024 AEROSENTINAL AEROSPACE • SYSTEM STATUS: <span className="text-status-optimal">OPTIMAL</span>
+          </div>
+          <div className="flex gap-6 text-bronze-oxide/60">
+            <span className="hover:text-tactical-amber transition-colors cursor-default">UPTIME: 99.99%</span>
+            <span className="hover:text-tactical-amber transition-colors cursor-default">DATA LINK: ENCRYPTED</span>
+            <span className="hover:text-tactical-amber transition-colors cursor-default">SATCOM: ACTIVE</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
