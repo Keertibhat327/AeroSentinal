@@ -28,36 +28,51 @@ export type AircraftState = {
   };
 };
 
+export type PhysicsSimInputs = {
+  ecs: { foulingPct: number; flightPhase: 'ground'|'climb'|'cruise'|'descent'; ambientTempOffsetK: number };
+  apu: { foulingPct: number; egtOffset: number };
+  landingGear: { aircraftMassKg: number; wheelVelocityKts: number; brakePressurePsi: number; runwayFriction: number };
+};
+
+export type DatasetTrajectoryInputs = {
+  engine: { unitId: string; cycle: number };
+  hydraulics: { unitId: string; cycle: number };
+};
+
 interface AppState {
   aircraft: AircraftState;
   loading: boolean;
   backendOnline: boolean;
   error: string | null;
 
-  // Simulator Controls
-  simulator: {
-    ecsFoulingPercent: number;
-    brakeWearPct: number;
-    apuFouling: number;
-    engineCycle: number;
-  };
+  // Granular Inputs
+  physicsInputs: PhysicsSimInputs;
+  datasetInputs: DatasetTrajectoryInputs;
+
+  // Dissection UI
+  dissectAmount: number;
+  setDissectAmount: (val: number) => void;
+
+  // Target Zone
+  focusedZone: string | null;
+  setFocusedZone: (zone: string | null) => void;
 
   // Simulator comparison results
   naiveEngineScore: number | null;
   fusionEngineScore: number | null;
   attribution: string;
 
-  // Historical data for charts
+  // History
   history: Array<{ time: number; engineScore: number; ecsFouling: number }>;
 
   // Actions
-  setSimulatorParam: (key: string, val: number) => void;
+  setPhysicsParam: <T extends keyof PhysicsSimInputs, K extends keyof PhysicsSimInputs[T]>(subsystem: T, key: K, val: PhysicsSimInputs[T][K]) => void;
+  setDatasetParam: <T extends keyof DatasetTrajectoryInputs, K extends keyof DatasetTrajectoryInputs[T]>(subsystem: T, key: K, val: DatasetTrajectoryInputs[T][K]) => void;
   fetchHealth: () => Promise<void>;
   runSimulation: () => Promise<void>;
   checkBackend: () => Promise<void>;
 }
 
-// Initial state
 const initialAircraft: AircraftState = {
   aircraftId: "N1234A",
   globalHealthScore: 92,
@@ -78,12 +93,8 @@ const initialHistory = Array.from({ length: 20 }, (_, i) => ({
   ecsFouling: 0,
 }));
 
-/**
- * Parse a FusionResponse from the backend API into our frontend AircraftState.
- */
 function parseFusionResponse(data: any): Partial<AircraftState> {
   const findSub = (name: string) => data.subsystems?.find((s: any) => s.name === name);
-
   const engine = findSub("engine");
   const hydraulics = findSub("hydraulics");
   const landing_gear = findSub("landing_gear");
@@ -94,44 +105,14 @@ function parseFusionResponse(data: any): Partial<AircraftState> {
     aircraftId: data.aircraft_id,
     globalHealthScore: data.global_health_score,
     globalStatus: data.global_status,
-    engine: engine ? {
-      score: engine.health_score,
-      status: engine.status,
-      metrics: { rulCycles: engine.rul_estimate ?? 0 },
-      is_synthetic_data: engine.is_synthetic_data,
-    } : initialAircraft.engine,
-    hydraulics: hydraulics ? {
-      score: hydraulics.health_score,
-      status: hydraulics.status,
-      metrics: { pressureAnomaly: 0 },
-      is_synthetic_data: hydraulics.is_synthetic_data,
-    } : initialAircraft.hydraulics,
-    landingGear: landing_gear ? {
-      score: landing_gear.health_score,
-      status: landing_gear.status,
-      metrics: { brakeWearPct: 0, remainingLandings: landing_gear.rul_estimate ?? 0 },
-      is_synthetic_data: landing_gear.is_synthetic_data,
-    } : initialAircraft.landingGear,
-    apu: apu ? {
-      score: apu.health_score,
-      status: apu.status,
-      metrics: { egtMargin: 0 },
-      is_synthetic_data: apu.is_synthetic_data,
-    } : initialAircraft.apu,
-    ecs: ecs ? {
-      score: ecs.health_score,
-      status: ecs.status,
-      metrics: { foulingPct: 0 },
-      is_synthetic_data: ecs.is_synthetic_data,
-    } : initialAircraft.ecs,
+    engine: engine ? { score: engine.health_score, status: engine.status, metrics: { rulCycles: engine.rul_estimate ?? 0 }, is_synthetic_data: engine.is_synthetic_data } : initialAircraft.engine,
+    hydraulics: hydraulics ? { score: hydraulics.health_score, status: hydraulics.status, metrics: { pressureAnomaly: 0 }, is_synthetic_data: hydraulics.is_synthetic_data } : initialAircraft.hydraulics,
+    landingGear: landing_gear ? { score: landing_gear.health_score, status: landing_gear.status, metrics: { brakeWearPct: 0, remainingLandings: landing_gear.rul_estimate ?? 0 }, is_synthetic_data: landing_gear.is_synthetic_data } : initialAircraft.landingGear,
+    apu: apu ? { score: apu.health_score, status: apu.status, metrics: { egtMargin: 0 }, is_synthetic_data: apu.is_synthetic_data } : initialAircraft.apu,
+    ecs: ecs ? { score: ecs.health_score, status: ecs.status, metrics: { foulingPct: 0 }, is_synthetic_data: ecs.is_synthetic_data } : initialAircraft.ecs,
     crossDomainAlerts: data.cross_domain_alerts || [],
     acarsMessage: data.acars_message || "",
-    aogRisk: data.aog_risk ? {
-      probability: data.aog_risk.probability_of_failure,
-      totalRiskUsd: data.aog_risk.total_risk_usd,
-      riskLevel: data.aog_risk.risk_level,
-      recommendation: data.aog_risk.recommendation,
-    } : initialAircraft.aogRisk,
+    aogRisk: data.aog_risk ? { probability: data.aog_risk.probability_of_failure, totalRiskUsd: data.aog_risk.total_risk_usd, riskLevel: data.aog_risk.risk_level, recommendation: data.aog_risk.recommendation } : initialAircraft.aogRisk,
   };
 }
 
@@ -140,12 +121,23 @@ export const useStore = create<AppState>((set, get) => ({
   loading: false,
   backendOnline: false,
   error: null,
-  simulator: {
-    ecsFoulingPercent: 0,
-    brakeWearPct: 10,
-    apuFouling: 0,
-    engineCycle: 100,
+
+  physicsInputs: {
+    ecs: { foulingPct: 0, flightPhase: 'cruise', ambientTempOffsetK: 0 },
+    apu: { foulingPct: 0, egtOffset: 0 },
+    landingGear: { aircraftMassKg: 70000, wheelVelocityKts: 65, brakePressurePsi: 2500, runwayFriction: 0.8 },
   },
+  datasetInputs: {
+    engine: { unitId: "1", cycle: 100 },
+    hydraulics: { unitId: "1", cycle: 100 },
+  },
+
+  dissectAmount: 0,
+  setDissectAmount: (val) => set({ dissectAmount: val }),
+
+  focusedZone: null,
+  setFocusedZone: (zone) => set({ focusedZone: zone }),
+
   naiveEngineScore: null,
   fusionEngineScore: null,
   attribution: "",
@@ -154,20 +146,19 @@ export const useStore = create<AppState>((set, get) => ({
   checkBackend: async () => {
     try {
       const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
-      if (res.ok) {
-        set({ backendOnline: true });
-      } else {
-        set({ backendOnline: false });
-      }
+      set({ backendOnline: res.ok });
     } catch {
       set({ backendOnline: false });
     }
   },
 
-  setSimulatorParam: (key: string, val: number) =>
-    set((state) => ({
-      simulator: { ...state.simulator, [key]: val },
-    })),
+  setPhysicsParam: (subsystem, key, val) => set((state) => ({
+    physicsInputs: { ...state.physicsInputs, [subsystem]: { ...state.physicsInputs[subsystem], [key]: val } }
+  })),
+
+  setDatasetParam: (subsystem, key, val) => set((state) => ({
+    datasetInputs: { ...state.datasetInputs, [subsystem]: { ...state.datasetInputs[subsystem], [key]: val } }
+  })),
 
   fetchHealth: async () => {
     const state = get();
@@ -176,10 +167,10 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       const params = new URLSearchParams({
         aircraft_id: state.aircraft.aircraftId,
-        engine_cycle: String(state.simulator.engineCycle),
-        brake_wear_pct: String(state.simulator.brakeWearPct),
-        apu_fouling: String(state.simulator.apuFouling),
-        ecs_fouling: String(state.simulator.ecsFoulingPercent),
+        engine_cycle: String(state.datasetInputs.engine.cycle),
+        brake_wear_pct: String(0), // Would use actual calculation or proxy
+        apu_fouling: String(state.physicsInputs.apu.foulingPct),
+        ecs_fouling: String(state.physicsInputs.ecs.foulingPct),
       });
 
       const res = await fetch(`${API_BASE}/fusion/health?${params}`);
@@ -188,11 +179,10 @@ export const useStore = create<AppState>((set, get) => ({
       const data = await res.json();
       const parsed = parseFusionResponse(data);
 
-      // Update history
       const newEntry = {
         time: state.history[state.history.length - 1].time + 1,
         engineScore: parsed.engine?.score ?? state.aircraft.engine.score,
-        ecsFouling: state.simulator.ecsFoulingPercent,
+        ecsFouling: state.physicsInputs.ecs.foulingPct,
       };
 
       set({
@@ -202,37 +192,21 @@ export const useStore = create<AppState>((set, get) => ({
         backendOnline: true,
       });
     } catch (err: any) {
-      // Fallback to local simulation when backend is offline
-      const val = state.simulator.ecsFoulingPercent;
+      // Offline mock fallback
+      const val = state.physicsInputs.ecs.foulingPct;
       const baseEngineScore = 95;
       const couplingEffect = (val / 100) * 15;
       const newEngineScore = Math.max(0, baseEngineScore - couplingEffect);
       const newEcsScore = Math.max(0, 100 - val);
-      const newEngineStatus: 'Healthy' | 'Warning' | 'Critical' = 
-        newEngineScore < 50 ? 'Critical' : newEngineScore < 75 ? 'Warning' : 'Healthy';
-      const newEcsStatus: 'Healthy' | 'Warning' | 'Critical' =
-        newEcsScore < 50 ? 'Critical' : newEcsScore < 75 ? 'Warning' : 'Healthy';
-      const newGlobalScore = Math.floor(
-        (newEngineScore + newEcsScore + state.aircraft.landingGear.score +
-         state.aircraft.apu.score + state.aircraft.hydraulics.score) / 5
-      );
-      const newEntry = {
-        time: state.history[state.history.length - 1].time + 1,
-        engineScore: newEngineScore,
-        ecsFouling: val,
-      };
 
       set({
         aircraft: {
           ...state.aircraft,
-          globalHealthScore: newGlobalScore,
-          engine: { ...state.aircraft.engine, score: Math.floor(newEngineScore), status: newEngineStatus },
-          ecs: { ...state.aircraft.ecs, score: Math.floor(newEcsScore), status: newEcsStatus, metrics: { foulingPct: val } },
+          engine: { ...state.aircraft.engine, score: Math.floor(newEngineScore), status: newEngineScore < 50 ? 'Critical' : newEngineScore < 75 ? 'Warning' : 'Healthy' },
+          ecs: { ...state.aircraft.ecs, score: Math.floor(newEcsScore), status: newEcsScore < 50 ? 'Critical' : newEcsScore < 75 ? 'Warning' : 'Healthy', metrics: { foulingPct: val } },
         },
-        history: [...state.history.slice(1), newEntry],
         loading: false,
         backendOnline: false,
-        error: `Offline mode: ${err.message}`,
       });
     }
   },
@@ -246,55 +220,73 @@ export const useStore = create<AppState>((set, get) => ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ecs_fouling_pct: state.simulator.ecsFoulingPercent,
+          ecs_fouling_pct: state.physicsInputs.ecs.foulingPct,
           engine_degradation_cycles: 0,
           hydraulic_leak_severity: 0,
-          brake_wear_pct: state.simulator.brakeWearPct,
-          apu_fouling_factor: state.simulator.apuFouling,
+          brake_wear_pct: 0, // Placeholder
+          apu_fouling_factor: state.physicsInputs.apu.foulingPct / 100,
         }),
       });
 
       if (!res.ok) throw new Error(`API returned ${res.status}`);
       const data = await res.json();
 
-      // Extract naive vs fusion engine scores
       const naiveEngine = data.naive_assessment?.subsystems?.find((s: any) => s.name === "engine");
       const fusionEngine = data.fusion_assessment?.subsystems?.find((s: any) => s.name === "engine");
-
-      // Update aircraft state from fusion assessment
       const parsed = parseFusionResponse(data.fusion_assessment);
-
-      const newEntry = {
-        time: state.history[state.history.length - 1].time + 1,
-        engineScore: parsed.engine?.score ?? state.aircraft.engine.score,
-        ecsFouling: state.simulator.ecsFoulingPercent,
-      };
 
       set({
         aircraft: { ...state.aircraft, ...parsed } as AircraftState,
         naiveEngineScore: naiveEngine?.health_score ?? null,
         fusionEngineScore: fusionEngine?.health_score ?? null,
         attribution: data.attribution_explanation || "",
-        history: [...state.history.slice(1), newEntry],
         loading: false,
         backendOnline: true,
       });
     } catch (err: any) {
-      // Fallback to local simulation
-      const ecsFouling = state.simulator.ecsFoulingPercent;
+      // Offline fallback
+      const ecsFouling = state.physicsInputs.ecs.foulingPct;
       const naiveScore = Math.max(0, 95 - (ecsFouling / 100) * 15);
       const fusionScore = Math.min(100, naiveScore + (ecsFouling / 100) * 15);
-
       set({
         naiveEngineScore: Math.floor(naiveScore),
         fusionEngineScore: Math.floor(fusionScore),
-        attribution: ecsFouling > 10
-          ? `[Offline] ECS fouling at ${ecsFouling}% would cause false engine depression. Fusion corrects this.`
-          : "[Offline] All subsystems nominal.",
+        attribution: ecsFouling > 10 ? `[Offline] ECS fouling at ${ecsFouling}% would cause false engine depression.` : "[Offline] All subsystems nominal.",
         loading: false,
         backendOnline: false,
-        error: `Offline mode: ${err.message}`,
       });
     }
   },
 }));
+
+// Selector hooks for components to subscribe to specific zone colors
+export const useZoneStatusColor = (zone: keyof AircraftState) => {
+  return useStore((state) => {
+    // The keys map 'zone_engine' -> 'engine', etc.
+    const mapping: Record<string, keyof AircraftState> = {
+      zone_engine: 'engine',
+      zone_ecs: 'ecs',
+      zone_apu: 'apu',
+      zone_landing_gear: 'landingGear',
+      zone_hydraulics: 'hydraulics',
+    };
+    
+    // Support either direct names or "zone_*" prefix
+    const key = mapping[zone] || zone;
+    const subsystem = state.aircraft[key as keyof AircraftState] as SubsystemHealth | undefined;
+    
+    if (!subsystem) return { color: '#10b981', intensity: 0, isWarning: false };
+    
+    const colors = {
+      Healthy: '#10b981',   // emerald-500
+      Warning: '#f59e0b',   // amber-500
+      Critical: '#f43f5e',  // rose-500
+    };
+
+    return {
+      color: colors[subsystem.status] || '#10b981',
+      intensity: Math.max(0, (100 - subsystem.score) / 100),
+      isWarning: subsystem.status !== 'Healthy',
+    };
+  });
+};
