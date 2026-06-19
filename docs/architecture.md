@@ -1,87 +1,81 @@
-# AeroSentinal — System Architecture
+# Architecture Overview
 
-## Overview
-
-AeroSentinal is a holistic aircraft predictive maintenance platform that fuses predictions from five independently trained ML subsystem models into a unified aircraft health assessment.
+## System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        Frontend (Next.js 14)                         │
-│  ┌──────────┐  ┌──────────────┐  ┌────────────┐  ┌──────────────┐  │
-│  │ Dashboard │  │ Aircraft/[id]│  │ Simulator  │  │  NLP Panel   │  │
-│  │  (Fleet)  │  │  (3D View)   │  │ (What-if)  │  │ (Retrieval)  │  │
-│  └─────┬─────┘  └──────┬───────┘  └─────┬──────┘  └──────┬───────┘  │
-└────────┼───────────────┼───────────────┼───────────────┼────────────┘
-         │               │               │               │
-         └───────────────┴───────────────┴───────────────┘
-                                │
-                          REST API / WebSocket
-                                │
-┌───────────────────────────────┴─────────────────────────────────────┐
-│                     Backend (FastAPI)                                 │
-│                                                                      │
-│  ┌──────────────────────────────────────────────────────────────┐    │
-│  │                    Fusion Orchestrator                        │    │
-│  │  /fusion/aircraft/{id} → unified health JSON                 │    │
-│  │  ACARS compiler (≤220 chars) + AOG cost scorer               │    │
-│  └──────────┬───────┬───────┬───────┬───────┬──────────────────┘    │
-│             │       │       │       │       │                        │
-│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐                      │
-│  │Engine│ │Hydra │ │L.Gear│ │ APU  │ │ ECS  │  ← ONNX Runtime      │
-│  │Router│ │Router│ │Router│ │Router│ │Router│    inference           │
-│  └──┬───┘ └──┬───┘ └──┬───┘ └──┬───┘ └──┬───┘                      │
-│     │        │        │        │        │                            │
-│  ┌──┴───┐ ┌──┴───┐ ┌──┴───┐ ┌──┴───┐ ┌──┴──────────────────┐      │
-│  │BiLSTM│ │Conv  │ │XGB   │ │ RF   │ │Brayton Sim          │      │
-│  │+Attn │ │Auto  │ │Class │ │Health│ │+ Coupling + Attrib  │      │
-│  │(ONNX)│ │(ONNX)│ │(ONNX)│ │      │ │                     │      │
-│  └──────┘ └──────┘ └──────┘ └──────┘ └─────────────────────┘      │
-└─────────────────────────────────────────────────────────────────────┘
-                                │
-                    ┌───────────┴───────────┐
-                    │   MLflow Tracking     │
-                    │   (local, ./mlruns/)  │
-                    └───────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                     Frontend (Next.js 14)                    │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐    │
+│  │Dashboard │  │ 3D Twin  │  │Simulator │  │Repair AI │    │
+│  │(Health)  │  │(R3F+Drei)│  │(What-if) │  │(NLP TF-IDF)│  │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘   │
+│       └──────────────┴─────────────┴─────────────┘          │
+│                          ▼ HTTP/REST                        │
+└─────────────────────────────────────────────────────────────┘
+                           │
+┌──────────────────────────┼──────────────────────────────────┐
+│                    FastAPI Backend (:8000)                    │
+│                          │                                   │
+│  ┌───────────────────────┼───────────────────────────────┐  │
+│  │              Fusion Orchestration Layer                │  │
+│  │  ┌─────────────────────────────────────────────────┐  │  │
+│  │  │  Cross-Domain Attribution (ECS ↔ Engine)        │  │  │
+│  │  │  Global Health Scorer (weighted average)        │  │  │
+│  │  │  AOG Risk Calculator (P×$150K/hr×hours)         │  │  │
+│  │  │  ACARS 220-char Compiler                        │  │  │
+│  │  └─────────────────────────────────────────────────┘  │  │
+│  └───────────┬───────┬───────┬───────┬───────┬───────────┘  │
+│              │       │       │       │       │               │
+│  ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐         │
+│  │Engine │ │Hydr.  │ │Land.  │ │ APU   │ │ ECS   │         │
+│  │BiLSTM │ │AutoEnc│ │XGBoost│ │  RF   │ │Brayton│         │
+│  │+Attn  │ │1D Conv│ │Class. │ │Health │ │Thermo │         │
+│  └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘         │
+│      └─────────┴─────────┴─────────┴─────────┘              │
+│                   ONNX Runtime (Phase 2)                     │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Data Flow
+## Key Design Decisions
 
-1. **Training** (offline): Each subsystem trains independently on its own dataset, logging metrics to MLflow
-2. **Export**: Engine, Hydraulics, Landing Gear models exported to ONNX format
-3. **Inference** (online): FastAPI loads ONNX models via onnxruntime; ECS runs its simulator directly
-4. **Fusion**: `/fusion/aircraft/{id}` aggregates all 5 subsystem predictions into unified JSON
-5. **ACARS**: Fusion JSON compressed to ≤220 character alert string
-6. **AOG Cost**: `risk_score = P(failure) × $150k/hr × grounding_hours` from live outputs
-7. **What-If**: Simulator endpoint accepts fault parameters, re-runs models live
+### 1. Fusion Architecture (not Ensemble)
+We use a **fusion orchestration** pattern, not model ensembling. Each subsystem has an independent model with its own training data, feature space, and validation metrics. The fusion layer aggregates and cross-references outputs — it does not blend raw predictions.
 
-## Cross-Domain Coupling (ECS ↔ Engine)
+### 2. Cross-Domain Coupling
+The ECS↔Engine coupling is the system's core differentiator:
+- ECS fouling → increased bleed air demand → elevated engine compressor readings
+- An isolated engine model would flag this as engine degradation (false positive)
+- The fusion layer checks ECS state before classifying engine anomalies
 
-The centerpiece feature:
+### 3. Honesty-First API Design
+Every prediction response carries `is_synthetic_data: bool`. This is enforced at the Pydantic schema level — it cannot be accidentally omitted.
 
-```
-ECS Heat Exchanger Fouling ↑
-    → Reduced cooling effectiveness
-    → ECS controller demands more bleed air
-    → Engine bleed port extraction increases
-    → Compressor inlet temperature rises artificially
-    → Engine-only model incorrectly flags "compressor degradation"
-    
-Fusion Attribution Layer:
-    → Checks ECS health simultaneously
-    → Detects ECS fouling as root cause
-    → Correctly attributes temperature rise to ECS, not engine
-```
+### 4. Pluggable Inference
+Each service class has a `MODEL_LOADED` flag. When `False`, physics-informed simulation is used. When `True`, ONNX Runtime inference is used. The swap requires no API changes.
 
 ## API Endpoints
 
 | Endpoint | Method | Description |
 |---|---|---|
+| `/health` | GET | Service health check with subsystem status |
 | `/predict/engine` | POST | Engine RUL prediction |
+| `/predict/engine/quick` | GET | Quick engine prediction |
 | `/predict/hydraulics` | POST | Hydraulics anomaly detection |
-| `/predict/landing_gear` | POST | Landing gear fault classification |
-| `/predict/apu` | POST | APU health scoring |
-| `/predict/ecs` | POST | ECS health + coupling analysis |
-| `/fusion/aircraft/{id}` | GET | Unified aircraft health JSON |
-| `/simulate/what-if` | POST | Fault injection simulation |
-| `/nlp/query` | POST | Maintenance log retrieval |
-| `/health` | GET | Service health check |
+| `/predict/hydraulics/quick` | GET | Quick hydraulics check |
+| `/predict/landing-gear` | GET | Landing gear brake wear |
+| `/predict/apu` | GET | APU health scoring |
+| `/predict/ecs` | GET | ECS health + coupling analysis |
+| `/fusion/health` | GET | Full aircraft health assessment |
+| `/fusion/acars` | GET | ACARS 220-char compressed alert |
+| `/simulate/what-if` | POST | Fault injection simulator |
+| `/nlp/recommend` | GET/POST | NLP repair recommendation |
+
+## Technology Stack
+
+| Layer | Technology | Rationale |
+|---|---|---|
+| Frontend | Next.js 14, React Three Fiber, Zustand, Recharts | App Router for routing, R3F for 3D, Zustand for lightweight state |
+| Backend | FastAPI, Pydantic v2 | Async Python, auto-generated OpenAPI docs, schema validation |
+| ML (Phase 2) | PyTorch → ONNX, XGBoost, scikit-learn | ONNX for portable inference, PyTorch for deep learning |
+| NLP (Phase 1) | scikit-learn TF-IDF | Lightweight retrieval. Phase 2: Fine-tuned LLM |
+| Testing | pytest + httpx | Async test client for FastAPI |

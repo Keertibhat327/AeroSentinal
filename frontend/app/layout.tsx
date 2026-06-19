@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
-import { Activity, Plane, Settings, LayoutDashboard } from "lucide-react";
+import { Activity, Plane, Settings, LayoutDashboard, BookOpen } from "lucide-react";
 import clsx from "clsx";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -17,6 +17,7 @@ function Sidebar() {
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Fleet 3D View", href: "/aircraft/N1234A", icon: Plane },
     { name: "Simulator", href: "/simulator", icon: Activity },
+    { name: "Repair Assistant", href: "/nlp", icon: BookOpen },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 

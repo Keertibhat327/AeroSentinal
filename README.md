@@ -98,17 +98,18 @@ cd frontend && npm install && npm run dev
 ## 📋 Build Progress
 
 - [x] Repository scaffolding & dependency setup
-- [ ] Engine model (BiLSTM+Attention on C-MAPSS)
-- [ ] Hydraulics model (1D Conv Autoencoder)
-- [ ] Landing gear classifier (XGBoost + SMOTE)
-- [ ] APU health scoring (Random Forest)
+- [ ] Engine model (BiLSTM+Attention on C-MAPSS) — *assigned to ML team member*
+- [ ] Hydraulics model (1D Conv Autoencoder) — *assigned to ML team member*
+- [ ] Landing gear classifier (XGBoost + SMOTE) — *assigned to ML team member*
+- [ ] APU health scoring (Random Forest) — *assigned to ML team member*
 - [x] ECS simulator + cross-domain coupling (physics-informed, production)
 - [x] Fusion API + ACARS compiler + AOG cost scorer
-- [ ] ONNX export + latency benchmarks
+- [ ] ONNX export + latency benchmarks — *blocked on trained models*
 - [x] What-if fault injection simulator (live re-runs, not canned)
 - [x] NLP retrieval stand-in (TF-IDF, 18 curated pairs, clearly labeled)
-- [x] Frontend dashboard + 3D aircraft viewer + simulator UI
-- [ ] Known-limitations documentation + final review
+- [x] Frontend dashboard + 3D aircraft viewer + simulator + NLP search
+- [x] Backend API tests (18/18 passing)
+- [x] Known-limitations documentation + architecture + dataset-sources docs
 
 ---
 
