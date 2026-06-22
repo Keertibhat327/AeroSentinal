@@ -42,11 +42,155 @@ Key innovations:
 
 > 12 Subsystems · 15.1M+ Data Points · 273 System Variables · 17+ ML Models
 
-<p align="center">
-  <img src="docs/architecture_diagram.svg" alt="AeroSentinel Full Architecture Diagram" width="100%"/>
-</p>
+```mermaid
+graph TD
+    subgraph DataSources ["① Multi-Subsystem Data Sources"]
+        Engine[Turbofan Engine<br/>NASA C-MAPSS · 21 sensors]
+        APU[APU System<br/>EGT · N1 · Vibration]
+        ECS[ECS<br/>Boeing 737-200 Thermo]
+        LG[Landing Gear<br/>AeroTwin 787 · 15.1M pts]
+        Brakes[Carbon Brakes<br/>Brake-core Telemetry]
+        EMA[EMA / Actuators<br/>NASA FLEA Testbed]
+        Hyd[Hydraulics<br/>UCI · 43,680 features]
+        ADAPT[Electrical / ADAPT<br/>273 vars · 128 sensors @ 2Hz]
+        Bat[Li-ion Battery<br/>HIRF · 18650 Cells]
+        CFRP[Structural / CFRP<br/>NASA Ames · 16 PZT]
+        QAR[QAR Telemetry<br/>NGAFID-MC · 11,500 hrs]
+        NLPData[Maintenance Logs<br/>MaintNet · 6,169 records]
+    end
 
-### Layer Details
+    subgraph Ingestion ["② Data Ingestion Layer"]
+        Thermo[Thermodynamic Streams<br/>1–4 Hz Continuous]
+        Kine[Kinematic Telemetry<br/>Velocity / Displacement]
+        Acoustic[Acoustic Emissions<br/>PZT Burst Waveforms]
+        Avionics[Avionics Bus Electrical<br/>2 Hz Sampling]
+        QARStream[QAR Flight Parameters<br/>1 Hz Per-Second]
+        NLPLogs[NLP Text Logs<br/>Batch Processing]
+    end
+
+    subgraph FeatureEng ["③ Feature Engineering & Preprocessing"]
+        Norm[Min-Max + Z-Score Normalization]
+        Window[30-Cycle Sliding Window]
+        CWT[Continuous Wavelet Transform]
+        TFIDF[TF-IDF + SVD / LSA]
+        SHAP[SHAP Feature Selection<br/>21 → 14 vars]
+        SMOTE[SMOTE Oversampling<br/>Rare Fault Balancing]
+        TCA[Transfer Component Analysis<br/>Cross-Domain Alignment]
+        Leven[Levenshtein Spell-Check<br/>Aviation Abbreviations]
+    end
+
+    subgraph ModelEnsemble ["④ Domain-Specific Model Ensemble"]
+        BiLSTM[BiLSTM + Attention<br/>Engine RUL]
+        Transformer[Transformer Encoder<br/>Multi-fault FD004]
+        BCADATrans[BCA-DATrans<br/>EMA Actuator Faults]
+        ConvAE[1D Conv Autoencoder<br/>Hydraulic Anomaly]
+        GPR[Gaussian Process Reg.<br/>EMA Spall Prognostics]
+        BayesNet[Bayesian Network<br/>503 Nodes · ADAPT · 0.26ms]
+        TCN[TCN + Transfer Learning<br/>Battery SOH]
+        CNNCWT[CNN on CWT Images<br/>CFRP Delamination]
+        ConvMHSA[Conv-MHSA / DUTSAM<br/>QAR Hard-Landing]
+        RF[Random Forest + CART<br/>APU Health Scoring]
+        LLaMA[LLaMA-3.2-3B<br/>Fine-tuned · MaintNet]
+        Gemma[Gemma-3-4B<br/>Fine-tuned · MaintNet]
+    end
+
+    subgraph AnomalyEngine ["⑤ Fusion Alert & Anomaly Engine"]
+        AnomalyDet[Multivariate Anomaly Detector<br/>Cross-Subsystem Correlation]
+        SLIDE[SLIDE Hierarchical Filter<br/>False-Alarm Suppression]
+        Kalman[Kalman / Bond Graph Isolation<br/>LRU-Level Fault Pinpoint]
+        RULConf[RUL Confidence Interval<br/>Ensemble Uncertainty]
+        AOG[AOG Cost Scorer<br/>$150k/hr Probabilistic Risk]
+        ACARS[ACARS 220-char Alert Compiler<br/>Compressed Downlink Message]
+    end
+
+    subgraph EdgeViz ["⑥ Edge Inference + 3D Visualization"]
+        ONNX[ONNX + TensorRT INT8/FP16<br/>Sub-5ms Edge Latency]
+        R3F[React Three Fiber 3D Aircraft<br/>WebGL Health Heatmap]
+        Recharts[Live Recharts Sensor Streams<br/>Multi-Modal Real-Time]
+        WhatIf[What-If Fault Simulator<br/>Inject Faults → RUL Cascade]
+        Fleet[Fleet Maintenance Planner<br/>Gantt-Chart Multi-Aircraft]
+        NLPRepair[NLP Repair Recommender<br/>LLM Chat Interface]
+    end
+
+    Engine --> Thermo
+    APU --> Thermo
+    ECS --> Thermo
+    LG --> Kine
+    Brakes --> Kine
+    EMA --> Kine
+    Hyd --> Thermo
+    ADAPT --> Avionics
+    Bat --> Avionics
+    CFRP --> Acoustic
+    QAR --> QARStream
+    NLPData --> NLPLogs
+
+    Thermo --> Norm
+    Kine --> Norm
+    Acoustic --> CWT
+    Avionics --> Window
+    QARStream --> SHAP
+    NLPLogs --> TFIDF
+    Norm --> Window
+    TFIDF --> Leven
+
+    Window --> BiLSTM
+    Window --> Transformer
+    SHAP --> BiLSTM
+    CWT --> CNNCWT
+    SMOTE --> RF
+    TCA --> BCADATrans
+    Norm --> ConvAE
+    Norm --> GPR
+    Window --> BayesNet
+    Window --> TCN
+    Window --> ConvMHSA
+    Leven --> LLaMA
+    Leven --> Gemma
+
+    BiLSTM --> AnomalyDet
+    Transformer --> AnomalyDet
+    BCADATrans --> AnomalyDet
+    ConvAE --> AnomalyDet
+    GPR --> AnomalyDet
+    BayesNet --> AnomalyDet
+    TCN --> AnomalyDet
+    CNNCWT --> AnomalyDet
+    ConvMHSA --> AnomalyDet
+    RF --> AnomalyDet
+    LLaMA --> AnomalyDet
+    Gemma --> AnomalyDet
+
+    AnomalyDet --> SLIDE
+    SLIDE --> Kalman
+    Kalman --> RULConf
+    RULConf --> AOG
+    AOG --> ACARS
+
+    ACARS --> ONNX
+    RULConf --> R3F
+    RULConf --> Recharts
+    AOG --> WhatIf
+    AOG --> Fleet
+    LLaMA --> NLPRepair
+    Gemma --> NLPRepair
+
+    classDef sources fill:#1e40af,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef ingestion fill:#1d4ed8,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef feature fill:#7c3aed,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef models fill:#dc2626,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef anomaly fill:#b45309,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef edge fill:#047857,stroke:#fff,stroke-width:2px,color:#fff;
+
+    class Engine,APU,ECS,LG,Brakes,EMA,Hyd,ADAPT,Bat,CFRP,QAR,NLPData sources;
+    class Thermo,Kine,Acoustic,Avionics,QARStream,NLPLogs ingestion;
+    class Norm,Window,CWT,TFIDF,SHAP,SMOTE,TCA,Leven feature;
+    class BiLSTM,Transformer,BCADATrans,ConvAE,GPR,BayesNet,TCN,CNNCWT,ConvMHSA,RF,LLaMA,Gemma models;
+    class AnomalyDet,SLIDE,Kalman,RULConf,AOG,ACARS anomaly;
+    class ONNX,R3F,Recharts,WhatIf,Fleet,NLPRepair edge;
+```
+
+### 🔍 Detailed Architecture Explanation
 
 <details>
 <summary><b>① Data Sources — 12 Subsystems, 9+ Datasets</b></summary>
