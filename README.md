@@ -18,8 +18,17 @@ The goal of this project is to build a Predictive Health Management (PHM) system
 - **Domain Shift:** Different operating conditions (e.g., humid vs. dry routes) drastically change sensor distributions, breaking standard ML models.
 - **Bandwidth Constraints:** ACARS bandwidth is limited to 220 characters per message block, mandating that all heavy ML inference occurs onboard at the edge.
 
-## 💡 The Solution
-A 6-layer multi-domain ensemble architecture combining 9+ real-world and research datasets spanning 12 physical aircraft subsystems. 
+## 💡 The Solution: Beyond the Turbofan
+
+Most predictive maintenance solutions stop at the turbofan engine (relying on synthetic data like C-MAPSS). **AeroSentinel is different.** We built a 6-layer multi-domain ensemble architecture combining 9+ real-world and research datasets to monitor **12 physical aircraft subsystems**.
+
+| Dimension | Baseline (Turbofan Only) | AeroSentinel (Whole Aircraft) |
+| :--- | :--- | :--- |
+| **Systems Covered** | Turbofan engine only | 12 subsystems across the entire airframe |
+| **Data Modalities** | Thermodynamic variables | Thermo + Acoustic + Kinematic + Electrical + NLP Text |
+| **Cross-System Coupling** | Not modeled | Explicitly handles interactions (e.g., ECS ↔ Engine) |
+| **Deployment Target** | Single cloud model | Edge (ONNX/TensorRT) multi-model ensemble |
+
 Unlike isolated models, our system performs **cross-subsystem correlation analysis**, preventing misdiagnoses (e.g., ECS failure masquerading as an engine fault).
 
 Key innovations:
@@ -29,87 +38,38 @@ Key innovations:
 
 ---
 
-## 🏗️ Architecture Diagram
+## 🏗️ Architecture Overview
 
-```mermaid
-graph TD
-    classDef layerBox fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#fff;
-    classDef nodeBox fill:#1e293b,stroke:#64748b,stroke-width:1px,color:#cbd5e1;
+The system is structured across 6 interconnected layers:
 
-    subgraph Layer1 [1. Multi-Subsystem Data Sources]
-        direction LR
-        D1[Turbofan Engine<br>NASA C-MAPSS]:::nodeBox
-        D2[APU<br>EGT/Vibration]:::nodeBox
-        D3[ECS<br>Boeing 737-200]:::nodeBox
-        D4[Landing Gear<br>AeroTwin 787]:::nodeBox
-        D5[EMA / Actuators<br>NASA FLEA]:::nodeBox
-        D6[Hydraulics<br>UCI Hydraulic]:::nodeBox
-        D7[Electrical/ADAPT<br>NASA ADAPT]:::nodeBox
-        D8[NLP Maint. Logs<br>MaintNet]:::nodeBox
-        D1 & D2 & D3 & D4 & D5 & D6 & D7 & D8
-    end
-    Layer1:::layerBox
+**1. Multi-Subsystem Data Sources Layer**
+Integrates 12 distinct datasets representing the entire airframe:
+* **Propulsion & Power:** Turbofan Engine (C-MAPSS), APU (EGT/Vibration)
+* **Pneumatics & Hydraulics:** ECS (Boeing 737-200), Hydraulics (UCI Hydraulic)
+* **Mechanical & Structural:** Landing Gear (AeroTwin 787), Carbon Brakes, EMA/Actuators (NASA FLEA), Structural/CFRP (NASA Ames)
+* **Electrical & Avionics:** Electrical (NASA ADAPT), Li-ion Battery (HIRF)
+* **Telemetry & Text:** QAR Flight Parameters, NLP Maintenance Logs (MaintNet)
 
-    subgraph Layer2 [2. Data Ingestion Layer]
-        direction LR
-        I1[Thermodynamic Streams]:::nodeBox
-        I2[Kinematic Telemetry]:::nodeBox
-        I3[Acoustic Emissions]:::nodeBox
-        I4[Avionics Bus Electrical]:::nodeBox
-        I5[QAR Flight Parameters]:::nodeBox
-        I6[NLP Text Logs]:::nodeBox
-    end
-    Layer2:::layerBox
+**2. Data Ingestion Layer**
+Routes heterogeneous data streams including Thermodynamic Streams (1-4 Hz), Kinematic Telemetry, Acoustic Emissions (PZT bursts), Avionics Bus data (2 Hz), QAR parameters, and textual NLP logs.
 
-    subgraph Layer3 [3. Feature Engineering & Preprocessing]
-        direction LR
-        F1[Min-Max & Z-Score Norm]:::nodeBox
-        F2[30-Cycle Sliding Window]:::nodeBox
-        F3[Continuous Wavelet Transform]:::nodeBox
-        F4[TF-IDF & SVD]:::nodeBox
-        F5[SHAP Feature Selection]:::nodeBox
-        F6[SMOTE Oversampling]:::nodeBox
-        F7[Transfer Component Analysis]:::nodeBox
-    end
-    Layer3:::layerBox
+**3. Feature Engineering & Preprocessing**
+Domain-specific pipelines apply Min-Max & Z-Score normalization, Continuous Wavelet Transforms (CWT) for acoustic data, TF-IDF + SVD for text, and Transfer Component Analysis (TCA) for cross-domain alignment.
 
-    subgraph Layer4 [4. Domain-Specific Model Ensemble]
-        direction LR
-        M1[BiLSTM + Attention<br>Engine]:::nodeBox
-        M2[Transformer Encoder<br>Multi-fault Engine]:::nodeBox
-        M3[BCA-DATrans<br>EMA Actuators]:::nodeBox
-        M4[1D Conv Autoencoder<br>Hydraulics]:::nodeBox
-        M5[Random Forest + CART<br>APU]:::nodeBox
-        M6[LLaMA-3.2 / Gemma-3<br>NLP Repair]:::nodeBox
-    end
-    Layer4:::layerBox
+**4. Domain-Specific Model Ensemble**
+Parallel specialized models for each subsystem to prevent cross-domain noise contamination:
+* BiLSTM + Attention (Engine)
+* 1D Conv Autoencoder (Hydraulics)
+* Random Forest + CART (APU)
+* Fine-tuned LLaMA-3.2 / Gemma-3 (NLP Repair)
 
-    subgraph Layer5 [5. Fusion Alert & Anomaly Engine]
-        direction LR
-        A1[Multivariate Anomaly Detector]:::nodeBox
-        A2[SLIDE Hierarchical Filter]:::nodeBox
-        A3[Kalman / Bond Graph Isolation]:::nodeBox
-        A4[AOG Cost Scorer]:::nodeBox
-        A5[ACARS Alert Compiler]:::nodeBox
-    end
-    Layer5:::layerBox
+**5. Fusion Alert & Anomaly Engine**
+The brain of the system. It aggregates outputs, performs cross-subsystem correlation (SLIDE Hierarchical Filter), suppresses false alarms, and generates AOG cost impact scores.
 
-    subgraph Layer6 [6. Edge Inference + 3D Visualization]
-        direction LR
-        E1[ONNX + TensorRT INT8/FP16]:::nodeBox
-        E2[React Three Fiber 3D Aircraft]:::nodeBox
-        E3[Live Recharts Sensor Streams]:::nodeBox
-        E4[What-If Fault Simulator]:::nodeBox
-        E5[Fleet Maintenance Planner]:::nodeBox
-    end
-    Layer6:::layerBox
+**6. Edge Inference & 3D Visualization Dashboard**
+Models are quantized (INT8/FP16) using TensorRT for sub-5ms edge inference. Results are downlinked via ACARS and visualized in a React Three Fiber 3D dashboard featuring a What-If Fault Simulator and Fleet Maintenance Planner.
 
-    Layer1 --> Layer2
-    Layer2 --> Layer3
-    Layer3 --> Layer4
-    Layer4 --> Layer5
-    Layer5 --> Layer6
-```
+*(For the complete visual architecture diagram, please refer to `Holistic_Aircraft_PHM_Updated_Architecture.pdf` in the project root).*
 
 ---
 
