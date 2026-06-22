@@ -40,7 +40,43 @@ Key innovations:
 
 ## 🏗️ Architecture Overview
 
-The system is structured across 6 interconnected layers:
+The system is structured across 6 interconnected layers, dynamically correlating data from 12 distinct subsystems into a central anomaly engine.
+
+```mermaid
+graph TD
+    classDef main fill:#1e40af,stroke:#60a5fa,stroke-width:3px,color:#fff;
+    classDef sys fill:#334155,stroke:#94a3b8,stroke-width:1px,color:#fff;
+    classDef edge fill:#065f46,stroke:#34d399,stroke-width:2px,color:#fff;
+    
+    Center((Cross-Domain<br/>Fusion Engine)):::main
+
+    E[Turbofan Engine<br/>NASA C-MAPSS]:::sys
+    A[APU System<br/>EGT/Vibration]:::sys
+    ECS[ECS System<br/>Boeing 737]:::sys
+    LG[Landing Gear<br/>AeroTwin 787]:::sys
+    Hyd[Hydraulics<br/>UCI Dataset]:::sys
+    EMA[EMA Actuators<br/>NASA FLEA]:::sys
+    Elec[Electrical<br/>NASA ADAPT]:::sys
+    Bat[Li-ion Battery<br/>HIRF]:::sys
+    CFRP[CFRP Wings<br/>NASA Ames]:::sys
+    NLP[Maint. Logs<br/>MaintNet]:::sys
+
+    E -.->|BiLSTM + Attention| Center
+    A -.->|Random Forest| Center
+    ECS -.->|TCA Model| Center
+    LG -.->|XGBoost| Center
+    Hyd -.->|1D Conv Autoencoder| Center
+    EMA -.->|BCA-DATrans| Center
+    Elec -.->|Bayesian Net| Center
+    Bat -.->|TCN Transfer| Center
+    CFRP -.->|CNN Spectrogram| Center
+    NLP -.->|Fine-tuned LLaMA| Center
+
+    Center ==> UI[React Three Fiber<br/>3D Dashboard]:::edge
+    Center ==> SIM[What-If Fault<br/>Simulator]:::edge
+    Center ==> ACARS[ACARS Edge<br/>Alerts]:::edge
+    Center ==> GANTT[Fleet Maintenance<br/>Planner]:::edge
+```
 
 **1. Multi-Subsystem Data Sources Layer**
 Integrates 12 distinct datasets representing the entire airframe:
